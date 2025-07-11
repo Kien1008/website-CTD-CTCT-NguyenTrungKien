@@ -103,6 +103,7 @@
             height: auto;
             max-height: 180px;
             margin-bottom: 0.625rem;
+            display: block; /* Ensure iframes are always visible */
         }
         .button-item button {
             background-color: yellow;
@@ -208,20 +209,32 @@
         }
     </style>
     <script>
-        // Hàm dừng tất cả các audio đang phát
-        function stopAllAudio(currentAudio) {
+        // Hàm dừng tất cả các media (audio và video) đang phát
+        function stopAllMedia(currentElement) {
+            // Dừng tất cả các audio đang phát
             const allAudio = document.querySelectorAll('.audio-player');
             allAudio.forEach(audio => {
-                if (audio !== currentAudio) {
+                if (audio !== currentElement) {
                     audio.pause();
                     audio.currentTime = 0; // Đặt lại thời gian về 0
+                }
+            });
+
+            // Dừng tất cả các iframe video đang phát
+            const allIframes = document.querySelectorAll('.button-item iframe');
+            allIframes.forEach(iframe => {
+                if (iframe !== currentElement) {
+                    // Đặt lại src để dừng video đang phát
+                    const originalSrc = iframe.dataset.originalSrc || iframe.src.split('?')[0];
+                    iframe.src = originalSrc;
+                    iframe.dataset.originalSrc = originalSrc; // Lưu lại src gốc
                 }
             });
         }
 
         // Hàm thiết lập nguồn audio và phát
         function setAudioSource(audioElement, url) {
-            stopAllAudio(audioElement); // Dừng tất cả audio khác trước khi phát
+            stopAllMedia(audioElement); // Dừng tất cả media khác trước khi phát
             audioElement.src = url;
             audioElement.play();
             audioElement.setAttribute('download', url.split('/').pop().split('?')[0]);
@@ -243,12 +256,13 @@
         function toggleSection(sectionId) {
             const sections = document.querySelectorAll('.section-content');
             sections.forEach(section => {
+                // Đóng tất cả các section khác
                 if (section.id !== sectionId) {
                     section.classList.remove('active');
                 }
             });
             const targetSection = document.getElementById(sectionId);
-            targetSection.classList.toggle('active');
+            targetSection.classList.toggle('active'); // Mở/đóng section được click
         }
 
         // Hàm bật/tắt menu trên mobile
@@ -259,12 +273,29 @@
 
         // Sự kiện khi DOM được tải
         document.addEventListener('DOMContentLoaded', () => {
+            // Xử lý click cho tất cả các nút trong button-grid
             document.querySelectorAll('.button-item button').forEach(button => {
                 button.addEventListener('click', () => {
+                    const parentItem = button.closest('.button-item');
+                    const iframe = parentItem.querySelector('iframe');
                     const audioPlayer = button.closest('.section').querySelector('.audio-player');
-                    const url = button.dataset.url;
-                    setAudioSource(audioPlayer, url);
+
+                    if (iframe) {
+                        // Nếu có iframe, phát video
+                        const videoSrc = iframe.src.split('?')[0]; // Lấy src gốc
+                        stopAllMedia(iframe); // Dừng tất cả media khác, giữ lại iframe này
+                        iframe.src = `${videoSrc}?autoplay=1&rel=0&showinfo=0&modestbranding=1`; // Thêm autoplay
+                        iframe.dataset.originalSrc = videoSrc; // Lưu lại src gốc
+                    } else if (button.dataset.url) {
+                        // Nếu không có iframe nhưng có data-url, phát audio
+                        setAudioSource(audioPlayer, button.dataset.url);
+                    }
                 });
+            });
+
+            // Lưu trữ src gốc của các iframe khi tải trang để có thể dừng chúng sau này
+            document.querySelectorAll('.button-item iframe').forEach(iframe => {
+                iframe.dataset.originalSrc = iframe.src.split('?')[0];
             });
         });
     </script>
@@ -279,11 +310,12 @@
     <div class="nav-menu">
         <button class="hamburger" onclick="toggleMenu()">☰</button>
         <div class="nav-links">
-            <a href="#section1">Nhạc dùng trong nghi lễ</a>
-            <a href="#section2">15 Bài hát quy định</a>
-            <a href="#section3">Các bài hát truyền thống</a>
-            <a href="#section4">Các bài hát hay về Đất nước, Bác Hồ và Quân đội</a>
-            <a href="#section5">Phim tài liệu tuyên truyền</a>
+            <!-- Các liên kết điều hướng đã được sắp xếp lại -->
+            <a href="#section1" onclick="toggleSection('content1')">Nhạc dùng trong nghi lễ</a>
+            <a href="#section2" onclick="toggleSection('content2')">15 Bài hát quy định</a>
+            <a href="#section3" onclick="toggleSection('content3')">Các bài hát truyền thống</a>
+            <a href="#section4" onclick="toggleSection('content4')">Các bài hát hay về Đất nước, Bác Hồ và Quân đội</a>
+            <a href="#section5" onclick="toggleSection('content5')">Phim tài liệu tuyên truyền</a>
         </div>
     </div>
 
@@ -355,7 +387,16 @@
                         <button data-url="https://www.dropbox.com/scl/fi/tmfinx0xig55fthmoytx2/w-HANH-KHUC-SU-DOAN-395.mp3?rlkey=kxp531f3nzf0z5cnexy7y5ol2&raw=1">Hành khúc Sư đoàn 395</button>
                     </div>
                     <div class="button-item">
-                        <iframe loading="lazy" src="https://www.youtube.com/embed/YET_ANOTHER_VIDEO_ID?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Truyền thống Trung đoàn 2" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        <!-- Video YouTube mới được thêm vào đây -->
+                        <iframe
+                            loading="lazy"
+                            width="560" height="315"
+                            src="https://www.youtube.com/embed/lFMOajZ0xLY?si=foTZpmrT7I0rXfx4"
+                            title="YouTube video player" frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen>
+                        </iframe>
                         <button data-url="https://www.dropbox.com/scl/fi/t7wibjpmsx2w6na8ixt1u/truy-n-th-ng-Trung-o-n-2-online-audio-converter.com.mp3?rlkey=cksdne5xuofzf67x4nbrjqd3v&raw=1">Truyền thống Trung đoàn 2</button>
                     </div>
                     <div class="button-item">
@@ -382,63 +423,63 @@
                 <div class="button-grid">
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/0E2g3SVIIm8?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Tổ quốc gọi tên mình" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-1.mp3?rlkey=xxx&raw=1">Tổ quốc gọi tên mình</button>
+                        <button>Tổ quốc gọi tên mình</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/CjDpSYcImJc?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Một vòng Việt Nam" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-2.mp3?rlkey=xxx&raw=1">Một vòng Việt Nam</button>
+                        <button>Một vòng Việt Nam</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/26bkLD4C-ok?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Việt Nam quê hương tôi" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-3.mp3?rlkey=xxx&raw=1">Việt Nam quê hương tôi</button>
+                        <button>Việt Nam quê hương tôi</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/fOZWTwYxmdA?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Việt Nam ơi!" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-4.mp3?rlkey=xxx&raw=1">Việt Nam ơi!</button>
+                        <button>Việt Nam ơi!</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/5DYQdNCdzWg?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Giai điệu Tổ quốc" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-5.mp3?rlkey=xxx&raw=1">Giai điệu Tổ quốc</button>
+                        <button>Giai điệu Tổ quốc</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/FqByn3IK7Go?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Nơi đảo xa" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-6.mp3?rlkey=xxx&raw=1">Nơi đảo xa</button>
+                        <button>Nơi đảo xa</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/NiVZRarKB9k?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Đường chúng ta đi" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-7.mp3?rlkey=xxx&raw=1">Đường chúng ta đi</button>
+                        <button>Đường chúng ta đi</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/23xpd-tkRUQ?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Hành khúc ngày và đêm" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-8.mp3?rlkey=xxx&raw=1">Hành khúc ngày và đêm</button>
+                        <button>Hành khúc ngày và đêm</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/hDEYr1Ww57A?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Chào em cô gái Lam Hồng" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-9.mp3?rlkey=xxx&raw=1">Chào em cô gái Lam Hồng</button>
+                        <button>Chào em cô gái Lam Hồng</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/CBQ-nOnW6GQ?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Gửi em ở cuối sông Hồng" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-10.mp3?rlkey=xxx&raw=1">Gửi em ở cuối sông Hồng</button>
+                        <button>Gửi em ở cuối sông Hồng</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/yIKzPB-zGjk?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Hành khúc ngày và đêm" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-11.mp3?rlkey=xxx&raw=1">Hành khúc ngày và đêm</button>
+                        <button>Hành khúc ngày và đêm</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/kE50c9ZX5Dw?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Năm anh em trên một chiếc xe tăng" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-12.mp3?rlkey=xxx&raw=1">Năm anh em trên một chiếc xe tăng</button>
+                        <button>Năm anh em trên một chiếc xe tăng</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/fHN--t4LYZ0?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Đêm Trường Sơn nhớ Bác" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-13.mp3?rlkey=xxx&raw=1">Đêm Trường Sơn nhớ Bác</button>
+                        <button>Đêm Trường Sơn nhớ Bác</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/fXmpjBI0gVo?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Ca ngợi Hồ Chủ Tịch" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-14.mp3?rlkey=xxx&raw=1">Ca ngợi Hồ Chủ Tịch</button>
+                        <button>Ca ngợi Hồ Chủ Tịch</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/jiYCyWqqs6M?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Đất nước trọn niềm vui" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Song-15.mp3?rlkey=xxx&raw=1">Đất nước trọn niềm vui</button>
+                        <button>Đất nước trọn niềm vui</button>
                     </div>
                 </div>
             </div>
@@ -452,63 +493,63 @@
                 <div class="button-grid">
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/cVfqzurW2Bc?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Đào, phở và piano" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-1.mp3?rlkey=xxx&raw=1">Đào, phở và piano</button>
+                        <button>Đào, phở và piano</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/m5lhIf_wl4g?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Mỹ nhân của ta" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-2.mp3?rlkey=xxx&raw=1">Mỹ nhân của ta</button>
+                        <button>Mỹ nhân của ta</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/caaE4q56vdU?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Mùi cỏ cháy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-3.mp3?rlkey=xxx&raw=1">Mùi cỏ cháy</button>
+                        <button>Mùi cỏ cháy</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/OehQtxrXIl8?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Thầu chín ở Xiêm – Ho Chi Minh in Siam" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-4.mp3?rlkey=xxx&raw=1">Thầu chín ở Xiêm – Ho Chi Minh in Siam</button>
+                        <button>Thầu chín ở Xiêm – Ho Chi Minh in Siam</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/Ns67oxAFPjY?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Giải phóng Sài Gòn" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-5.mp3?rlkey=xxx&raw=1">Giải phóng Sài Gòn</button>
+                        <button>Giải phóng Sài Gòn</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/5QnUoIiWKAk?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Nhà tiên tri" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-6.mp3?rlkey=xxx&raw=1">Nhà tiên tri</button>
+                        <button>Nhà tiên tri</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/hRTrXjXybzA?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Những người viết huyền thoại (The Legend Makers)" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-7.mp3?rlkey=xxx&raw=1">Những người viết huyền thoại (The Legend Makers)</button>
+                        <button>Những người viết huyền thoại (The Legend Makers)</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/ysL9w20NreI?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Bình minh đỏ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-8.mp3?rlkey=xxx&raw=1">Bình minh đỏ</button>
+                        <button>Bình minh đỏ</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/YRthqv5x1Do?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Võ Thị Sáu - Như một huyền thoại" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-9.mp3?rlkey=xxx&raw=1">Võ Thị Sáu - Như một huyền thoại</button>
+                        <button>Võ Thị Sáu - Như một huyền thoại</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/eONB3Lx8iqk?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Nguyễn Ái Quốc - Ẩn số từ nước Pháp" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-10.mp3?rlkey=xxx&raw=1">Nguyễn Ái Quốc - Ẩn số từ nước Pháp</button>
+                        <button>Nguyễn Ái Quốc - Ẩn số từ nước Pháp</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/na_T2dyC1P8?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Mưu đồ xâm lược của Pháp, quân Tưởng và tay sai khi chính quyền non trẻ ra đời" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-11.mp3?rlkey=xxx&raw=1">Mưu đồ xâm lược của Pháp, quân Tưởng và tay sai khi chính quyền non trẻ ra đời</button>
+                        <button>Mưu đồ xâm lược của Pháp, quân Tưởng và tay sai khi chính quyền non trẻ ra đời</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/5ODYUerrQ88?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Điện Biên Phủ - Nhìn từ nước Pháp" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-12.mp3?rlkey=xxx&raw=1">Điện Biên Phủ - Nhìn từ nước Pháp</button>
+                        <button>Điện Biên Phủ - Nhìn từ nước Pháp</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/injdXI30g2M?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Chiến dịch Hồ Chí Minh - Giải phóng miền Nam, thống nhất đất nước" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-13.mp3?rlkey=xxx&raw=1">Chiến dịch Hồ Chí Minh - Giải phóng miền Nam, thống nhất đất nước</button>
+                        <button>Chiến dịch Hồ Chí Minh - Giải phóng miền Nam, thống nhất đất nước</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/_UoMq3Yr6o8?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Chiến tranh biên giới Việt – Trung 1979: Đánh tan chiến thuật biển người quân đội Trung Quốc" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-14.mp3?rlkey=xxx&raw=1">Chiến tranh biên giới Việt – Trung 1979: Đánh tan chiến thuật biển người quân đội Trung Quốc</button>
+                        <button>Chiến tranh biên giới Việt – Trung 1979: Đánh tan chiến thuật biển người quân đội Trung Quốc</button>
                     </div>
                     <div class="button-item">
                         <iframe loading="lazy" src="https://www.youtube.com/embed/in9v4C-0EYE?autoplay=0&rel=0&showinfo=0&modestbranding=1" title="Vững bước dưới cờ Đảng: 80 năm truyền thống vẻ vang của Quân đội nhân dân Việt Nam" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                        <button data-url="https://www.dropbox.com/scl/fi/xxx/Doc-15.mp3?rlkey=xxx&raw=1">Vững bước dưới cờ Đảng: 80 năm truyền thống vẻ vang của Quân đội nhân dân Việt Nam</button>
+                        <button>Vững bước dưới cờ Đảng: 80 năm truyền thống vẻ vang của Quân đội nhân dân Việt Nam</button>
                     </div>
                 </div>
             </div>
